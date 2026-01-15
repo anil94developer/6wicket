@@ -1,0 +1,29 @@
+:root {
+  --inpput-bg: #303e57;
+}
+[data-theme="light"] {
+  --inpput-bg: #bbc1ce;
+}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-box-shadow: 0 0 0 1000px var(--inpput-bg) inset !important;
+  box-shadow: 0 0 0 1000px var(--inpput-bg) inset !important;
+  -webkit-text-fill-color: #fff !important;
+  background-color: transparent !important;
+}
+
+.profile-select {
+  background: #3b3b3b;
+  color: white;
+}
+
+*::-webkit-scrollbar {
+  background-color: #2b2b2b;
+}
+*::-webkit-scrollbar-track {
+  background-color: #2b2b2b;
+}
