@@ -1301,3 +1301,36 @@ h3 {
   display: block;
   text-align: center;
 }
+
+
+.toast {
+  position: fixed;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  z-index: 9999;
+  animation: slideDown 0.3s ease;
+}
+
+.toast.error {
+  background: #e74c3c;
+}
+
+.toast.success {
+  background: #2ecc71;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
