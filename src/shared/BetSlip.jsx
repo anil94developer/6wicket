@@ -6,6 +6,7 @@ const BetSlip = ({
   chips = [], // Default empty array
   onCancel,
   onSubmit,
+  isLoading = false,
 }) => {
   const [amount, setAmount] = useState("");
 
@@ -57,8 +58,12 @@ const BetSlip = ({
         <strong style={{ lineHeight: "4" }}>
           {amount ? (amount * parseFloat(rate || 1)).toFixed(0) : "0"}
         </strong>
-        <button className="submit-btn" onClick={() => onSubmit(amount)}>
-          Submit
+        <button 
+          className="submit-btn" 
+          onClick={() => onSubmit(amount)}
+          disabled={isLoading || !amount || parseFloat(amount) <= 0}
+        >
+          {isLoading ? "Submitting..." : "Submit"}
         </button>
       </div>
     </div>

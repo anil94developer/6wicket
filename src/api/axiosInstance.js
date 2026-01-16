@@ -24,6 +24,18 @@ const axiosInstance = axios.create({
 // Optional: request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Get token from sessionStorage
+    try {
+      const authState = sessionStorage.getItem('authState');
+      if (authState) {
+        const parsed = JSON.parse(authState);
+        if (parsed.token) {
+          config.headers.Authorization = `Bearer ${parsed.token}`;
+        }
+      }
+    } catch (err) {
+      console.error('Error reading auth state:', err);
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -31,9 +43,29 @@ axiosInstance.interceptors.request.use(
 
 // Optional: response interceptor
 axiosInstance.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    const data = response.data;
+    // Check if response indicates logout
+    if (data?.logout === true) {
+      // Clear auth state
+      sessionStorage.removeItem('authState');
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 100);
+      // Return the data anyway, component can handle it
+    }
+    return data;
+  },
   (error) => {
     console.error("API Error:", error?.response || error);
+    // Check if error response indicates logout
+    if (error.response?.data?.logout === true) {
+      sessionStorage.removeItem('authState');
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 100);
+    }
     return Promise.reject(error);
   }
 );

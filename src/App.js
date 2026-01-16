@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import MainLayout from "./layout/MainLayout";
 import Home from "./components/home/Home";
 import Login from "./components/login/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
 import "./custom.css";
 import TermsCondition from "./components/terms-condition/TermsCondition";
 import Inplay from "./components/inplay/Inplay";
@@ -31,7 +32,13 @@ function App() {
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
           <Route path="/rules" element={<TermsCondition />} />
-          <Route element={<MainLayout />}>
+          <Route
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/home" element={<Home />} />
             <Route path="/inplay" element={<Inplay />} />
             <Route path="/live/numbers" element={<Matka />} />
