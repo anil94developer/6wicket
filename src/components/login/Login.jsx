@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../../api/axiosInstance";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { loginUser, demoLogin, clearError, fetchProfile } from "../../store/authSlice";
 import Toast from "../Toast";
 
 const Login = () => {
@@ -8,6 +9,8 @@ const Login = () => {
   const [name, setName] = useState("");
   const [pass, setPass] = useState("");
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
   const [toastMsg, setToastMsg] = useState("");
   const [toastType, setToastType] = useState("error");
 
@@ -25,58 +28,95 @@ const Login = () => {
     }
   }, [toastMsg]);
 
+  // Note: Navigation is now handled in handleLogin and handleDemoLogin functions
+  // This useEffect is kept for backward compatibility but navigation happens in handlers
+
+  // Handle error messages
+  useEffect(() => {
+    if (error) {
+      setToastType("error");
+      // Check for CORS errors
+      if (error.code === "ERR_NETWORK" || error.message?.includes("CORS") || error.message?.includes("Network Error")) {
+        setToastMsg("CORS Error: Unable to connect to server. Please check server configuration.");
+      } else if (error.status === 401 || error.status === 403) {
+        setToastMsg("Invalid username or password.");
+      } else if (error.message) {
+        setToastMsg(error.message);
+      } else {
+        setToastMsg("Login failed. Please try again.");
+      }
+      // Clear error after showing toast
+      setTimeout(() => {
+        dispatch(clearError());
+      }, 3000);
+    }
+  }, [error, dispatch]);
+
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
   };
 
-  const login = async () => {
-    try {
-      const data = new URLSearchParams();
-      data.append("user_name", name);
-      data.append("password", pass);
-      data.append("grant_type", "password");
-
-      const res = await axiosInstance.post("/user/userLogin", data, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: "Basic YXBwbGljYXRpb246c2VjcmV0",
-        },
-      });
-
-      console.log(res);
-      navigate("/");
-    } catch (e) {
+  const handleLogin = async () => {
+    if (!name || !pass) {
       setToastType("error");
-      // Check for CORS errors
-      if (e.message && (e.message.includes("CORS") || e.message.includes("Network Error") || e.code === "ERR_NETWORK")) {
-        setToastMsg("CORS Error: Unable to connect to server. Please check server configuration.");
-      } else if (e.response?.status === 401 || e.response?.status === 403) {
-        setToastMsg("Invalid username or password.");
-      } else if (e.response?.data?.message) {
-        setToastMsg(e.response.data.message);
-      } else {
-        setToastMsg("Login failed. Please try again.");
+      setToastMsg("Please enter both username and password.");
+      return;
+    }
+    try {
+      // Dispatch login
+      const loginResult = await dispatch(loginUser({ username: name, password: pass })).unwrap();
+      
+      // If login successful, fetch profile and then navigate
+      if (loginResult) {
+        await dispatch(fetchProfile()).unwrap();
+        navigate("/home");
       }
-      console.error("Login error:", e);
+    } catch (error) {
+      // Error handling is done in the useEffect for error state
+      console.error("Login error:", error);
     }
   };
 
-  const demoLogin = async () => {
+  const handleDemoLogin = async () => {
     try {
-      const res = await axiosInstance.post("/user/autoDemoUserLogin", {});
-      console.log(res);
-      navigate("/");
-    } catch (e) {
+      // Step 1: Get demo credentials
+      const demoResult = await dispatch(demoLogin()).unwrap();
+      
+      // Extract credentials from response
+      const credentials = demoResult?.data || demoResult;
+      const demoUsername = credentials?.user_name;
+      const demoPassword = credentials?.password;
+      
+      if (!demoUsername || !demoPassword) {
+        setToastType("error");
+        setToastMsg("Failed to get demo credentials. Please try again.");
+        return;
+      }
+      
+      // Step 2: Use credentials to login via regular login API
+      const loginResult = await dispatch(loginUser({ 
+        username: demoUsername, 
+        password: demoPassword 
+      })).unwrap();
+      
+      // Step 3: If login successful, fetch profile and then navigate
+      if (loginResult) {
+        await dispatch(fetchProfile()).unwrap();
+        navigate("/home");
+      }
+    } catch (error) {
+      // Error handling
       setToastType("error");
-      // Check for CORS errors
-      if (e.message && (e.message.includes("CORS") || e.message.includes("Network Error") || e.code === "ERR_NETWORK")) {
+      if (error.code === "ERR_NETWORK" || error.message?.includes("CORS") || error.message?.includes("Network Error")) {
         setToastMsg("CORS Error: Unable to connect to server. Please check server configuration.");
-      } else if (e.response?.data?.message) {
-        setToastMsg(e.response.data.message);
+      } else if (error.status === 401 || error.status === 403) {
+        setToastMsg("Demo login failed. Invalid credentials.");
+      } else if (error.message) {
+        setToastMsg(error.message);
       } else {
         setToastMsg("Demo login failed. Please try again.");
       }
-      console.error("Demo login error:", e);
+      console.error("Demo login error:", error);
     }
   };
 
@@ -111,12 +151,12 @@ const Login = () => {
           />
         </div>
 
-        <button className="login-btn" onClick={login}>
-          Login
+        <button className="login-btn" onClick={handleLogin} disabled={isLoading}>
+          {isLoading ? "Logging in..." : "Login"}
         </button>
 
-        <button className="demo-btn" onClick={demoLogin}>
-          Login with Demo ID
+        <button className="demo-btn" onClick={handleDemoLogin} disabled={isLoading}>
+          {isLoading ? "Logging in..." : "Login with Demo ID"}
         </button>
       </div>
 
